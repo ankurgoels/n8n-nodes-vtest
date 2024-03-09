@@ -1,19 +1,19 @@
 {
-  "name": "n8n-nodes-<...>",
-  "version": "0.1.0",
-  "description": "",
+  "name": "n8n-nodes-vtest",
+  "version": "0.1.1",
+  "description": "Test VTEST",
   "keywords": [
     "n8n-community-node-package"
   ],
   "license": "MIT",
   "homepage": "",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "Ankur",
+    "email": "ankurgoel@live.in"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/<...>/n8n-nodes-<...>.git"
+    "url": "https://github.com/ankurgoels/n8n-nodes-vtest.git"
   },
   "main": "index.js",
   "scripts": {
