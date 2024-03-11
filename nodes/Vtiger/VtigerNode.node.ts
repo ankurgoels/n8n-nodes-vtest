@@ -12,26 +12,26 @@ export class VtigerNode implements INodeType {
     name: 'vtigerNode',
     group: ['transform'],
     version: 1,
-		subtitle: '={{ $parameter["operation"] }}',
+    subtitle: '={{ $parameter["operation"] }}',
     description: 'Vtiger CRM (Open Source) Node',
-		icon: 'file:vtiger.svg',
+    icon: 'file:vtiger.svg',
     defaults: {
       name: 'Vtiger',
     },
     inputs: ['main'],
     outputs: ['main'],
-		credentials: [
-			{
-				name: 'vtigercrmApi',
-				required: true,
-			},
-		],
+    credentials: [
+      {
+        name: 'vtigercrmApi',
+        required: true,
+      },
+    ],
     properties: [
       {
         displayName: 'Operation',
         name: 'operation',
         type: 'options',
-				required: true,
+        required: true,
         noDataExpression: true,
         options: [
           {
@@ -52,7 +52,7 @@ export class VtigerNode implements INodeType {
           },
           {
             name: 'List Types',
-            value: 'list_type',
+            value: 'listtypes',
           },
           {
             name: 'Login',
@@ -81,136 +81,288 @@ export class VtigerNode implements INodeType {
         ],
         default: 'login',
       },
-			{
-				displayName: 'Session Name',
-				name: 'session_name_field',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: {
-					hide: {
-						operation: ['login'],
-					},
-				},
-				placeholder: 'Session ID from Login Operation',
-			},
-			{
-				displayName: 'Element',
-				name: 'element_field',
-				type: 'json',
-				default: '',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['create', 'update']
-					}
-				}
-			},
-			{
-				displayName: 'Element Type',
-				name: 'elementType_field',
-				type: 'string',
-				required: true,
-				default: '',
-				displayOptions: {
-					show: {
-						operation: ['create', 'describe']
-					}
-				}
-			},
-			{
-				displayName: 'Webservice ID',
-				name: 'webservice_id_field',
-				type: 'string',
-				required: true,
-				default: '',
-				displayOptions: {
-					show: {
-						operation: ['retrieve', 'delete']
-					}
-				}
-			},
-			{
-				displayName: 'Query',
-				name: 'query_field',
-				type: 'string',
-				required: true,
-				default: '',
-				displayOptions: {
-					show: {
-						operation: ['query']
-					}
-				},
-				typeOptions: {
-					rows: 4,
-				},
-			},
+      {
+        displayName: 'Session Name',
+        name: 'session_name_field',
+        type: 'string',
+        default: '',
+        required: true,
+        displayOptions: {
+          hide: {
+            operation: ['login'],
+          },
+        },
+        placeholder: 'Obtained through Login Operation',
+      },
+      {
+        displayName: 'Element',
+        name: 'element_field',
+        type: 'json',
+        default: '',
+        required: true,
+        displayOptions: {
+          show: {
+            operation: ['create', 'update']
+          }
+        }
+      },
+      {
+        displayName: 'Element Type',
+        name: 'elementType_field',
+        type: 'string',
+        required: true,
+        default: '',
+        displayOptions: {
+          show: {
+            operation: ['create', 'describe']
+          }
+        }
+      },
+      {
+        displayName: 'Webservice ID',
+        name: 'webservice_id_field',
+        type: 'string',
+        required: true,
+        default: '',
+        displayOptions: {
+          show: {
+            operation: ['retrieve', 'delete']
+          }
+        }
+      },
+      {
+        displayName: 'Query',
+        name: 'query_field',
+        type: 'string',
+        required: true,
+        default: '',
+        displayOptions: {
+          show: {
+            operation: ['query']
+          }
+        },
+        typeOptions: {
+          rows: 4,
+        },
+      },
     ],
   };
 
-  // The function below is responsible for actually doing whatever this node
-  // is supposed to do. In this case, we're just appending the `myString` property
-  // with whatever the user has entered.
-  // You can make async calls and use `await`.
+  /**
+    * Executes the Vtiger CRM operation based on the provided parameters.
+    * This function performs various operations such as creating, deleting, describing, extending session, listing types,
+    * logging in, logging out, querying, retrieving, and updating data in the Vtiger CRM.
+    * 
+    * @returns A promise that resolves to an array of node execution data.
+    */
+  /**
+   * Executes the Vtiger CRM operation based on the provided parameters.
+   * @returns A promise that resolves to an array of node execution data.
+   */
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		let operation = this.getNodeParameter('operation', 0);
-		let credential = await this.getCredentials('vtigercrmApi')
+    let operation = this.getNodeParameter('operation', 0);
+    let credential = await this.getCredentials('vtigercrmApi')
 
-		if(operation === 'login') {
-			const challenge_response = await this.helpers.httpRequest({
-				baseURL: credential?.host as string,
-				url: '/webservice.php',
-				method: 'GET',
-				qs: {
-					operation: 'getchallenge',
-					username: credential?.username as string,
-				},
-				json:true,
-			});
+    let response = null;
 
-			if(challenge_response?.success) {
+    switch (operation) {
+      case 'create':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
+          },
+          body: {
+            operation: 'create',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+            elementType: this.getNodeParameter('elementType_field', 0) as string,
+            element: encodeURI(this.getNodeParameter('element_field', 0) as string) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'delete':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
+          },
+          body: {
+            operation: 'delete',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+            id: this.getNodeParameter('webservice_id_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'describe':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'GET',
+          qs: {
+            operation: 'describe',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+            elementType: this.getNodeParameter('elementType_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'extend_session':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'GET',
+          qs: {
+            operation: 'extend_session',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'listtypes':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'GET',
+          qs: {
+            operation: 'listtypes',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'login':
+        const challenge_response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'GET',
+          qs: {
+            operation: 'getchallenge',
+            username: credential?.username as string,
+          },
+          json: true,
+        });
 
-				const CryptoJS = require("crypto-js");
-				const login_response = await this.helpers.httpRequest({
-					baseURL: credential?.host as string,
-					url: '/webservice.php',
-					method: 'POST',
-					headers: {
-						'content-type': 'application/x-www-form-urlencoded'
-					},
-					body: {
-						operation: 'login',
-						username: credential?.username as string,
-						accessKey: CryptoJS.MD5(challenge_response?.result?.token + credential?.access_key)
-					},
-					json:true,
-				});
+        if (challenge_response?.success) {
+          const CryptoJS = require("crypto-js");
+          response = await this.helpers.httpRequest({
+            baseURL: credential?.host as string,
+            url: '/webservice.php',
+            method: 'POST',
+            headers: {
+              'content-type': 'application/x-www-form-urlencoded'
+            },
+            body: {
+              operation: 'login',
+              username: credential?.username as string,
+              accessKey: CryptoJS.MD5(challenge_response?.result?.token + credential?.access_key)
+            },
+            json: true,
+          });
 
-				return [this.helpers.returnJsonArray(login_response)];
+        } else {
+          throw new NodeOperationError(this.getNode(), challenge_response.error.message + ' (' + challenge_response.error.code + ')');
+        }
+      case 'logout':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
+          },
+          body: {
+            operation: 'logout',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'listtypes':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
+          },
+          body: {
+            operation: 'listtypes',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'query':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
+          },
+          body: {
+            operation: 'query',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+            query: this.getNodeParameter('query_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      case 'retrieve':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'GET',
+          qs: {
+            operation: 'retrieve',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+            id: this.getNodeParameter('webservice_id_field', 0) as string,
+          },
+          json: true,
+        });
+        break;
+      // case 'sync':
+      //   response = await this.helpers.httpRequest({
+      //     baseURL: credential?.host as string,
+      //     url: '/webservice.php',
+      //     method: 'POST',
+      //     headers: {
+      //         'content-type': 'application/x-www-form-urlencoded'
+      //     },
+      //     body: {
+      //         operation: 'sync',
+      //         sessionName: this.getNodeParameter('session_name_field', 0) as string,
+      //     },
+      //     json:true,
+      // });
+      // break;
+      case 'update':
+        response = await this.helpers.httpRequest({
+          baseURL: credential?.host as string,
+          url: '/webservice.php',
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded'
+          },
+          body: {
+            operation: 'update',
+            sessionName: this.getNodeParameter('session_name_field', 0) as string,
+            elementType: this.getNodeParameter('elementType_field', 0) as string,
+            element: encodeURI(this.getNodeParameter('element_field', 0) as string) as string,
+          },
+          json: true,
+        });
+        break;
+      default:
+        throw new NodeOperationError(this.getNode(), operation + ' operation is not implemented.');
+    }
 
-			} else {
-				throw new NodeOperationError(this.getNode(), challenge_response.error.message + ' (' + challenge_response.error.code + ')');
-			}
-
-
-		} else if(operation == 'list_type') {
-			const logout_response = await this.helpers.httpRequest({
-				baseURL: credential?.host as string,
-				url: '/webservice.php',
-				method: 'POST',
-				headers: {
-					'content-type': 'application/x-www-form-urlencoded'
-				},
-				body: {
-					operation: 'listtypes',
-					sessionName: this.getNodeParameter('session_name_field', 0) as string,
-				},
-				json:true,
-			});
-
-			return [this.helpers.returnJsonArray(logout_response)];
-		} else {
-			throw new NodeOperationError(this.getNode(), operation + ' operation is not implemented.');
-		}
+    return [this.helpers.returnJsonArray(response)];
   }
 }
